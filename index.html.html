@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Proposal Flow — With Sounds</title>
+<style>
+  :root{
+    --deep-blue:#042a66;
+    --mid-blue:#0b5fa8;
+    --soft-pink:#ffdfe9;
+    --light-pink:#fff0f6;
+    --final-pink:#fff6f9;
+    --yes-a:#7fc9ff;
+    --yes-b:#a9ddff;
+    --pink-1:#ff7fb6;
+    --pink-2:#ffb0d9;
+    --blue-design:#7ec0ff;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,var(--deep-blue),var(--mid-blue));display:flex;align-items:center;justify-content:center;color:#06203a}
+  .wrap{width:95vw;max-width:980px;height:82vh;border-radius:14px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+  /* mute toggle */
+  .sound-toggle{position:fixed;top:14px;right:18px;z-index:600;background:rgba(255,255,255,0.06);border:0;padding:10px;border-radius:10px;color:#fff;backdrop-filter:blur(4px);cursor:pointer;box-shadow:0 6px 18px rgba(2,6,23,.15)}
+  .sound-toggle.muted{opacity:.5}
+
+  /* pink decorative hearts on initial blue page */
+  .hearts { position:absolute; inset:0; pointer-events:none; z-index:6; }
+  .heart {
+    position:absolute; width:18px; height:18px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23ff7fb6" d="M12 21s-7.5-4.9-9.3-7.2C-0.4 9.1 4.3 4 7.6 6.3 9.2 7.5 12 10.4 12 10.4s2.8-2.9 4.4-4.1c3.3-2.3 8 2.8 4.9 7.5C19.5 16.1 12 21 12 21z"/></svg>');
+    background-size:contain; background-repeat:no-repeat; opacity:0.95; transform:translate(-50%,-50%);
+  }
+
+  /* stage */
+  .stage{position:relative;inset:0;display:flex;align-items:center;justify-content:center;height:100%;z-index:8}
+
+  /* central */
+  #propose{padding:20px 28px;border-radius:999px;border:0;background:linear-gradient(180deg,#0d6fb4,#023b85);color:#fff;font-weight:900;font-size:20px;cursor:pointer;box-shadow:0 18px 40px rgba(2,6,23,.32)}
+  /* answers (hidden initially) */
+  .answers{display:none;gap:28px;margin-top:18px}
+  .ans{padding:14px 26px;border-radius:12px;border:0;font-weight:800;cursor:pointer}
+  .ans.left{background:linear-gradient(180deg,var(--yes-a),#58a7f7);color:#042a4a}
+  .ans.right{background:linear-gradient(180deg,var(--yes-b),#cfeeff);color:#042a4a}
+
+  /* pink overlay (full viewport) */
+  .pink{position:fixed;inset:0;background:linear-gradient(180deg,var(--soft-pink),var(--light-pink));display:none;align-items:center;justify-content:center;flex-direction:column;z-index:200;overflow:hidden}
+  .pink .blue-designs {
+    position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 10% 20%, rgba(126,192,255,0.10), transparent 6%),
+      radial-gradient(circle at 85% 85%, rgba(126,192,255,0.06), transparent 6%);
+  }
+  /* additional floating blue shapes on pink overlay */
+  .pink .float-blue {
+    position:absolute;
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(180deg, rgba(126,192,255,0.95), rgba(94,158,235,0.85));
+    box-shadow:0 10px 30px rgba(14,60,120,0.12);
+    opacity:0.95;
+    transform:translate(-50%,-50%);
+    animation: floatY 7s ease-in-out infinite;
+  }
+  @keyframes floatY { 0%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-16px)}100%{transform:translate(-50%,-50%) translateY(0)} }
+
+  .card{background:rgba(255,255,255,0.92);padding:28px;border-radius:16px;text-align:center;box-shadow:0 24px 60px rgba(2,6,23,0.18)}
+  .title{font-weight:900;font-size:28px;color:#042a4a;margin-bottom:18px}
+  .overlay-buttons{display:flex;gap:48px;justify-content:center} /* increased gap to separate */
+  .overlay-btn{padding:12px 22px;border-radius:12px;border:0;font-weight:800;cursor:pointer;font-size:16px;box-shadow:0 10px 30px rgba(2,6,23,0.12)}
+  .btn-yes{background:linear-gradient(180deg,#8fd0ff,#66b2ff);color:#042a4a}
+  .btn-no{background:linear-gradient(180deg,#eee,#f6f6f8);color:#8a98a8;cursor:not-allowed;opacity:.6}
+
+  /* final page */
+  .final{position:fixed;inset:0;background:var(--final-pink);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:300;padding:24px}
+  .final-title{font-weight:900;font-size:28px;margin-bottom:8px}
+  .final-sub{font-style:italic;color:#5b3b4b;margin-bottom:18px}
+  .emoji-area{position:relative;width:92%;height:50%;border-radius:12px;overflow:hidden;margin-bottom:14px;background:transparent}
+  .phone-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .call-me{font-weight:900;font-size:18px;color:#3b2b3b}
+  .phone{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.85);padding:10px 14px;border-radius:999px;font-weight:900;color:#243b53}
+  .arrow{font-size:38px;color:#ff6ea7;margin-right:6px;animation:arrowPulse 1.2s infinite}
+  @keyframes arrowPulse{0%{transform:translateX(-6px)}50%{transform:translateX(4px)}100%{transform:translateX(-6px)}}
+
+  /* Responsive */
+  @media (max-width:520px){ .title{font-size:20px} .overlay-buttons{gap:20px} .call-me{font-size:16px} .final-title{font-size:22px} }
+</style>
+</head>
+<body>
+  <button id="soundToggle" class="sound-toggle" aria-pressed="false" aria-label="Toggle sound">🔊</button>
+
+  <div class="wrap" id="wrap">
+    <!-- pink decorative hearts on the initial page -->
+    <div class="hearts" aria-hidden="true">
+      <div class="heart" style="left:6%; top:20%; transform:translate(-50%,-50%) scale(1.1);"></div>
+      <div class="heart" style="left:18%; top:8%; transform:translate(-50%,-50%) scale(.8);"></div>
+      <div class="heart" style="left:40%; top:12%; transform:translate(-50%,-50%) scale(.9);"></div>
+      <div class="heart" style="left:72%; top:30%; transform:translate(-50%,-50%) scale(.85);"></div>
+      <div class="heart" style="left:86%; top:8%; transform:translate(-50%,-50%) scale(.75);"></div>
+      <div class="heart" style="left:22%; bottom:18%; transform:translate(-50%,-50%) scale(.95);"></div>
+    </div>
+
+    <div class="stage" id="stage" role="application" aria-label="Proposal stage">
+      <div style="text-align:center; z-index:8">
+        <!-- Updated central text -->
+        <button id="propose" aria-haspopup="true" aria-expanded="false">DO YOU LOVE ME</button>
+
+        <div style="margin-top:24px;">
+          <div class="answers" id="answers" role="group" aria-hidden="true">
+            <button class="ans left" id="yes1">yes</button>
+            <button class="ans right" id="yes2">yes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- pink overlay covering whole page, with blue designs -->
+  <div class="pink" id="pink" aria-hidden="true">
+    <div class="blue-designs" aria-hidden="true"></div>
+    <!-- a few floating blue shapes for decoration -->
+    <div class="float-blue" style="left:12%; top:18%; animation-duration:8s;"></div>
+    <div class="float-blue" style="left:84%; top:24%; width:28px;height:28px;border-radius:8px; animation-duration:10s;"></div>
+    <div class="float-blue" style="left:60%; top:76%; width:24px;height:24px;border-radius:6px; animation-duration:9s;"></div>
+
+    <div class="card" role="dialog" aria-modal="true" aria-labelledby="lyingTitle">
+      <div class="title" id="lyingTitle">ARE YOU LYING <span>😂</span></div>
+      <div class="overlay-buttons">
+        <button class="overlay-btn btn-yes" id="overlayYes">Yes</button>
+        <button class="overlay-btn btn-no" id="overlayNo" disabled>No</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- final full page -->
+  <div class="final" id="final" aria-hidden="true">
+    <!-- Updated final title + italic subtitle -->
+    <div class="final-title">I Knew It <span>😂</span></div>
+    <div class="final-sub">(I Love u too)</div>
+
+    <div class="emoji-area" id="emojiArea" aria-hidden="true"></div>
+
+    <div class="phone-wrap" aria-hidden="true">
+      <div class="call-me">CALL ME <span>😂</span></div>
+      <div class="phone" id="phonePanel">
+        <div class="arrow">➡️</div>
+        <div><a href="tel:09013797034">09013797034 <span>😂</span></a></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* WebAudio sound utility (no external files). AudioContext is created/resumed on first user gesture. */
+let audioCtx = null;
+let masterGain = null;
+let muted = false;
+
+const soundToggleBtn = document.getElementById('soundToggle');
+function ensureAudioCtx() {
+  if (audioCtx && audioCtx.state !== 'suspended') return;
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.9;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+/* small oscillator tone */
+function playTone({freq=440, type='sine', duration=0.12, volume=0.08, when=0}) {
+  if (!audioCtx || muted) return;
+  const o = audioCtx.createOscillator();
+  o.type = type;
+  o.frequency.value = freq;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime + when);
+  g.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + when + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + when + duration);
+  o.connect(g); g.connect(masterGain);
+  o.start(audioCtx.currentTime + when);
+  o.stop(audioCtx.currentTime + when + duration + 0.02);
+}
+
+/* short click/pop (two quick tones) */
+function sfxClick() {
+  ensureAudioCtx();
+  if (muted) return;
+  playTone({freq:880, type:'sawtooth', duration:0.06, volume:0.06});
+  playTone({freq:1320, type:'sine', duration:0.06, volume:0.04, when:0.06});
+}
+
+/* gentle chime when revealing answers */
+function sfxReveal() {
+  ensureAudioCtx();
+  if (muted) return;
+  playTone({freq:520, type:'triangle', duration:0.16, volume:0.06});
+  playTone({freq:720, type:'sine', duration:0.18, volume:0.05, when:0.08});
+}
+
+/* overlay sound (subtle) */
+function sfxOverlay() {
+  ensureAudioCtx();
+  if (muted) return;
+  playTone({freq:320, type:'sine', duration:0.22, volume:0.07});
+  playTone({freq:420, type:'sine', duration:0.16, volume:0.045, when:0.06});
+}
+
+/* celebratory motif on final page */
+function sfxFinal() {
+  ensureAudioCtx();
+  if (muted) return;
+  playTone({freq:660, type:'sine', duration:0.12, volume:0.06, when:0});
+  playTone({freq:880, type:'sine', duration:0.12, volume:0.06, when:0.12});
+  playTone({freq:990, type:'sine', duration:0.18, volume:0.06, when:0.24});
+  playTone({freq:1320, type:'sine', duration:0.26, volume:0.05, when:0.44});
+}
+
+/* Mute toggle */
+function setMuted(v) {
+  muted = !!v;
+  soundToggleBtn.setAttribute('aria-pressed', String(!muted));
+  soundToggleBtn.classList.toggle('muted', muted);
+  soundToggleBtn.textContent = muted ? '🔈' : '🔊';
+  if (masterGain) masterGain.gain.value = muted ? 0 : 0.9;
+}
+soundToggleBtn.addEventListener('click', () => {
+  // ensure audio is ready on first user click
+  ensureAudioCtx();
+  setMuted(!muted);
+});
+
+/* Interaction flow wiring (updated text: DO YOU LOVE ME and final messages) */
+const propose = document.getElementById('propose');
+const answers = document.getElementById('answers');
+const yes1 = document.getElementById('yes1');
+const yes2 = document.getElementById('yes2');
+
+const pink = document.getElementById('pink');
+const overlayYes = document.getElementById('overlayYes');
+const overlayNo = document.getElementById('overlayNo');
+
+const final = document.getElementById('final');
+const emojiArea = document.getElementById('emojiArea');
+
+answers.style.display = 'none';
+pink.style.display = 'none';
+final.style.display = 'none';
+
+propose.addEventListener('click', () => {
+  // init audio and play reveal chime
+  ensureAudioCtx();
+  sfxReveal();
+  // hide central and show answers
+  propose.style.display = 'none';
+  answers.style.display = 'flex';
+  answers.setAttribute('aria-hidden', 'false');
+});
+
+/* clicking a yes */
+function onYes(e){
+  sfxClick();
+  setTimeout(() => {
+    sfxOverlay();
+    answers.style.display = 'none';
+    pink.style.display = 'flex';
+    pink.setAttribute('aria-hidden', 'false');
+  }, 90);
+}
+yes1.addEventListener('click', onYes);
+yes2.addEventListener('click', onYes);
+
+/* overlay yes -> final */
+overlayYes.addEventListener('click', () => {
+  sfxClick();
+  pink.style.display = 'none';
+  final.style.display = 'flex';
+  final.setAttribute('aria-hidden', 'false');
+  setTimeout(() => sfxFinal(), 90);
+  populateEmojis();
+});
+
+/* overlayNo disabled protection */
+overlayNo.addEventListener('click', (e) => { e.preventDefault(); });
+
+/* helper to populate emojis */
+function populateEmojis(){
+  emojiArea.innerHTML = '';
+  const w = emojiArea.clientWidth || 600;
+  const h = emojiArea.clientHeight || 300;
+  const count = Math.max(30, Math.round((w*h)/9000));
+  for (let i = 0; i < count; i++){
+    const el = document.createElement('div');
+    el.textContent = '😂';
+    el.style.position = 'absolute';
+    el.style.left = (Math.random()*100).toFixed(2) + '%';
+    el.style.top = (Math.random()*100).toFixed(2) + '%';
+    const size = (12 + Math.random()*36);
+    el.style.fontSize = size + 'px';
+    el.style.transform = 'translate(-50%,-50%) rotate(' + (Math.random()*50-25) + 'deg)';
+    el.style.opacity = (0.6 + Math.random()*0.4).toFixed(2);
+    emojiArea.appendChild(el);
+    (function(node){
+      setInterval(() => {
+        node.style.transform = 'translate(-50%,-50%) rotate(' + (Math.random()*50-25) + 'deg) translateY(' + (Math.random()*10-5) + 'px)';
+      }, 1400 + Math.random()*2600);
+    })(el);
+  }
+}
+
+/* Keyboard accessibility: allow Enter/Space for main buttons */
+[propose, yes1, yes2, overlayYes].forEach(btn => {
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+  });
+});
+
+/* initialize mute state (unmuted) */
+setMuted(false);
+</script>
+</body>
+</html>
